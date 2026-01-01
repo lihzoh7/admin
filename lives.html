@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SPACE GLASS – Admin Lives</title>
+
+<style>
+body {
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#020b2d;
+  color:white;
+}
+
+/* NAV */
+.admin-tabs {
+  display:flex;
+  gap:20px;
+  padding:15px;
+  background:#010821;
+}
+.admin-tabs div {
+  cursor:pointer;
+  padding:8px 16px;
+  border-radius:6px;
+}
+.admin-tabs div.active,
+.admin-tabs div:hover {
+  background:#1b2a6b;
+}
+
+/* CONTENT */
+#content {
+  padding:20px;
+}
+
+.day {
+  margin-bottom:25px;
+  border-left:4px solid #7FDBFF;
+  padding-left:15px;
+}
+
+.day h3 {
+  color:#7FDBFF;
+}
+
+.row {
+  display:flex;
+  justify-content:space-between;
+  padding:6px 0;
+  border-bottom:1px solid #333;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ADMIN NAV -->
+<div class="admin-tabs">
+  <div onclick="location.href='admin-messages.html'">Messages</div>
+  <div onclick="location.href='admin-players.html'">Players</div>
+  <div onclick="location.href='admin-queries.html'">Queries</div>
+  <div onclick="location.href='admin-winners.html'">Winners</div>
+  <div class="active">Lives</div>
+</div>
+
+<div id="content">
+  <h2>Lives Sales (Realtime)</h2>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqJTLjxhZBCsvjrTH_cG0fkXlElG6BqTg",
+  authDomain: "tose-ccf8f.firebaseapp.com",
+  databaseURL: "https://tose-ccf8f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tose-ccf8f",
+  storageBucket: "tose-ccf8f.firebasestorage.app",
+  messagingSenderId: "475447495901",
+  appId: "1:475447495901:web:9189276a162a3680afdf34"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const container = document.getElementById("content");
+
+/*
+EXPECTED STRUCTURE
+livesLog: {
+  autoKey: {
+    uid,
+    timestamp
+  }
+}
+*/
+
+onValue(ref(db,"livesLog"), snap=>{
+  container.innerHTML = "<h2>Lives Sales (Realtime)</h2>";
+
+  const data = snap.val() || {};
+  const perDay = {};
+
+  for(const key in data){
+    const entry = data[key];
+    const date = new Date(entry.timestamp);
+    const dayKey = date.toDateString();
+
+    if(!perDay[dayKey]) perDay[dayKey] = 0;
+    perDay[dayKey]++;
+  }
+
+  for(const day in perDay){
+    const lives = perDay[day];
+    const revenue = (lives * 0.5).toFixed(2);
+
+    const div = document.createElement("div");
+    div.className = "day";
+
+    div.innerHTML = `
+      <h3>${day}</h3>
+      <div class="row"><span>Lives Sold</span><span>${lives}</span></div>
+      <div class="row"><span>Total Revenue</span><span>R${revenue}</span></div>
+    `;
+
+    container.appendChild(div);
+  }
+});
+</script>
+
+</body>
+</html>

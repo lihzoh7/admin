@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SPACE GLASS – Admin Messages</title>
+
+<style>
+body {
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#020b2d;
+  color:white;
+}
+
+.admin-tabs {
+  display:flex;
+  gap:20px;
+  padding:15px;
+  background:#010821;
+}
+
+.admin-tabs div {
+  cursor:pointer;
+  padding:8px 16px;
+  border-radius:6px;
+}
+
+.admin-tabs div.active,
+.admin-tabs div:hover {
+  background:#1b2a6b;
+}
+
+#header {
+  position:relative;
+  padding:20px;
+}
+
+#writeBtn {
+  position:absolute;
+  right:20px;
+  top:20px;
+  background:purple;
+  color:white;
+  border:none;
+  padding:10px 20px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+#playersList {
+  padding:20px;
+}
+
+.player-row {
+  display:flex;
+  justify-content:space-between;
+  padding:8px;
+  border-bottom:1px solid #333;
+}
+
+/* POPUP */
+#popup {
+  display:none;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:420px;
+  background:#010821;
+  padding:20px;
+  border-radius:10px;
+  z-index:100;
+}
+
+#popup textarea {
+  width:100%;
+  height:100px;
+  margin-bottom:10px;
+}
+
+.popup-tabs {
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.popup-tabs button {
+  flex:1;
+  margin:0 5px;
+  padding:8px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+#searchTab { background:#003366; color:white; }
+#publishTab { background:green; color:white; }
+
+#searchArea {
+  display:none;
+}
+
+#searchInput {
+  width:100%;
+  padding:6px;
+  margin-bottom:10px;
+}
+
+.search-row {
+  padding:6px;
+  border-bottom:1px solid #333;
+  cursor:pointer;
+}
+
+.search-row.selected {
+  background:#1b2a6b;
+}
+
+#doneBtn {
+  margin-top:10px;
+  width:100%;
+  background:green;
+  color:white;
+  padding:8px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ADMIN NAV -->
+<div class="admin-tabs">
+  <div class="active">Messages</div>
+  <div onclick="alert('Open admin-players.html')">Players</div>
+  <div onclick="alert('Open admin-queries.html')">Queries</div>
+  <div onclick="alert('Open admin-winners.html')">Winners</div>
+  <div onclick="alert('Open admin-lives.html')">Lives</div>
+</div>
+
+<div id="header">
+  <h2>Admin Messages</h2>
+  <button id="writeBtn">WRITE</button>
+</div>
+
+<div id="playersList"></div>
+
+<!-- POPUP -->
+<div id="popup">
+  <textarea id="messageText" placeholder="Write message..."></textarea>
+
+  <div class="popup-tabs">
+    <button id="searchTab">Search</button>
+    <button id="publishTab">Publish</button>
+  </div>
+
+  <div id="searchArea">
+    <input id="searchInput" placeholder="Search players...">
+    <div id="searchResults"></div>
+    <button id="doneBtn">DONE</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqJTLjxhZBCsvjrTH_cG0fkXlElG6BqTg",
+  authDomain: "tose-ccf8f.firebaseapp.com",
+  databaseURL: "https://tose-ccf8f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tose-ccf8f",
+  storageBucket: "tose-ccf8f.firebasestorage.app",
+  messagingSenderId: "475447495901",
+  appId: "1:475447495901:web:9189276a162a3680afdf34"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const playersList = document.getElementById("playersList");
+const popup = document.getElementById("popup");
+const writeBtn = document.getElementById("writeBtn");
+const searchTab = document.getElementById("searchTab");
+const publishTab = document.getElementById("publishTab");
+const searchArea = document.getElementById("searchArea");
+const searchResults = document.getElementById("searchResults");
+const searchInput = document.getElementById("searchInput");
+const doneBtn = document.getElementById("doneBtn");
+const messageText = document.getElementById("messageText");
+
+let players = [];
+let selected = [];
+
+/* LOAD PLAYERS */
+async function loadPlayers(){
+  const snap = await get(ref(db,'users'));
+  const data = snap.val() || {};
+  players = [];
+
+  playersList.innerHTML = "";
+  let i = 1;
+
+  for(const uid in data){
+    const u = data[uid];
+    players.push({ uid, ...u });
+
+    const row = document.createElement("div");
+    row.className = "player-row";
+    row.innerHTML = `${i}. ${u.name || ""} ${u.surname || ""} | ${u.idNumber || ""}`;
+    playersList.appendChild(row);
+    i++;
+  }
+}
+
+loadPlayers();
+
+/* WRITE */
+writeBtn.onclick = () => {
+  popup.style.display = "block";
+  searchArea.style.display = "none";
+};
+
+/* SEARCH TAB */
+searchTab.onclick = () => {
+  searchArea.style.display = "block";
+  renderSearch("");
+};
+
+searchInput.oninput = () => renderSearch(searchInput.value);
+
+function renderSearch(filter){
+  searchResults.innerHTML = "";
+  players
+    .filter(p =>
+      `${p.name} ${p.surname} ${p.idNumber}`.toLowerCase()
+      .includes(filter.toLowerCase())
+    )
+    .sort((a,b)=>`${a.name}${a.surname}`.localeCompare(`${b.name}${b.surname}`))
+    .forEach(p=>{
+      const row = document.createElement("div");
+      row.className = "search-row";
+      if(selected.includes(p.uid)) row.classList.add("selected");
+
+      row.innerText = `${p.name} ${p.surname} | ${p.idNumber}`;
+      row.onclick = () => {
+        if(selected.includes(p.uid)){
+          selected = selected.filter(x=>x!==p.uid);
+          row.classList.remove("selected");
+        } else {
+          selected.push(p.uid);
+          row.classList.add("selected");
+        }
+      };
+      searchResults.appendChild(row);
+    });
+}
+
+/* DONE */
+doneBtn.onclick = () => {
+  searchArea.style.display = "none";
+};
+
+/* PUBLISH */
+publishTab.onclick = async () => {
+  if(!messageText.value || selected.length === 0){
+    alert("Message or recipients missing");
+    return;
+  }
+
+  for(const uid of selected){
+    await push(ref(db,`messages/${uid}`),{
+      text: messageText.value,
+      from: "ADMIN",
+      timestamp: Date.now()
+    });
+  }
+
+  alert("Message sent");
+  messageText.value = "";
+  selected = [];
+  popup.style.display = "none";
+};
+</script>
+
+</body>
+</html>

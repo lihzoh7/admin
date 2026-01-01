@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SPACE GLASS – Admin Players</title>
+
+<style>
+body {
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#020b2d;
+  color:white;
+}
+
+/* NAV TABS */
+.admin-tabs {
+  display:flex;
+  gap:20px;
+  padding:15px;
+  background:#010821;
+}
+
+.admin-tabs div {
+  cursor:pointer;
+  padding:8px 16px;
+  border-radius:6px;
+}
+
+.admin-tabs div.active,
+.admin-tabs div:hover {
+  background:#1b2a6b;
+}
+
+/* HEADER */
+#header {
+  padding:20px;
+}
+
+#total {
+  margin-top:10px;
+  font-weight:bold;
+  color:#7FDBFF;
+}
+
+/* PLAYER LIST */
+#players {
+  padding:20px;
+}
+
+.player-row {
+  display:grid;
+  grid-template-columns: 50px 1fr 1fr 1fr 1fr;
+  gap:10px;
+  padding:8px;
+  border-bottom:1px solid #333;
+  font-size:14px;
+}
+
+.player-row:nth-child(odd) {
+  background: rgba(255,255,255,0.05);
+}
+
+.col-header {
+  font-weight:bold;
+  border-bottom:2px solid #555;
+  padding-bottom:6px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ADMIN NAV -->
+<div class="admin-tabs">
+  <div onclick="location.href='admin-messages.html'">Messages</div>
+  <div class="active">Players</div>
+  <div onclick="alert('Open admin-queries.html')">Queries</div>
+  <div onclick="alert('Open admin-winners.html')">Winners</div>
+  <div onclick="alert('Open admin-lives.html')">Lives</div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <h2>Registered Players</h2>
+  <div id="total">Total Players: 0</div>
+</div>
+
+<!-- LIST -->
+<div id="players">
+  <div class="player-row col-header">
+    <div>#</div>
+    <div>Name</div>
+    <div>Surname</div>
+    <div>ID Number</div>
+    <div>Joined</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqJTLjxhZBCsvjrTH_cG0fkXlElG6BqTg",
+  authDomain: "tose-ccf8f.firebaseapp.com",
+  databaseURL: "https://tose-ccf8f-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "tose-ccf8f",
+  storageBucket: "tose-ccf8f.firebasestorage.app",
+  messagingSenderId: "475447495901",
+  appId: "1:475447495901:web:9189276a162a3680afdf34"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const playersDiv = document.getElementById("players");
+const totalDiv = document.getElementById("total");
+
+/* LOAD PLAYERS */
+async function loadPlayers(){
+  const snap = await get(ref(db,'users'));
+  const data = snap.val() || {};
+
+  let count = 0;
+  let index = 1;
+
+  for(const uid in data){
+    const u = data[uid];
+    count++;
+
+    const joined = u.createdAt
+      ? new Date(u.createdAt).toLocaleString()
+      : "N/A";
+
+    const row = document.createElement("div");
+    row.className = "player-row";
+
+    row.innerHTML = `
+      <div>${index}</div>
+      <div>${u.name || ""}</div>
+      <div>${u.surname || ""}</div>
+      <div>${u.idNumber || ""}</div>
+      <div>${joined}</div>
+    `;
+
+    playersDiv.appendChild(row);
+    index++;
+  }
+
+  totalDiv.innerText = `Total Players: ${count}`;
+}
+
+loadPlayers();
+</script>
+
+</body>
+</html>
